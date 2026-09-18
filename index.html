@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Evaluación - Despeje de Fórmulas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- KaTeX CSS & JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <!-- html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .katex-display {
+            margin: 0.5em 0 !important;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.4);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-none">
+
+    <!-- Modal Advertencia Anti-Fraude -->
+    <div id="warning-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-amber-500/50 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl">
+            <div class="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">¡Advertencia de Seguridad!</h3>
+            <p class="text-slate-300 text-sm mb-4">
+                Se ha detectado una pérdida de foco de la evaluación o intento de cambio de pestaña/ventana.
+            </p>
+            <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 mb-6">
+                <span class="text-xs text-slate-400 block uppercase tracking-wider">Límite de Advertencias</span>
+                <span id="warning-count-text" class="text-2xl font-black text-amber-400">1 / 3</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-6">Si se superan las 3 advertencias, el examen se enviará automáticamente con la puntuación registrada hasta el momento.</p>
+            <button onclick="closeWarningModal()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl transition-all shadow-lg">
+                Entendido y Continuar
+            </button>
+        </div>
+    </div>
+
+    <!-- Pantalla Inicial / Bloqueo Kiosk -->
+    <div id="start-overlay" class="fixed inset-0 bg-slate-950 z-40 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-8 shadow-2xl text-center">
+            <div class="w-20 h-20 bg-sky-500/10 text-sky-400 rounded-2xl flex items-center justify-center mx-auto mb-6 text-3xl border border-sky-500/20">
+                <i class="fa-solid fa-square-root-variable"></i>
+            </div>
+            <h1 class="text-3xl font-extrabold text-white mb-3">Evaluación de Despeje de Fórmulas</h1>
+            <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                Física & Matemática - 40 Reactivos<br>
+                Tiempo límite: <strong class="text-sky-400">50 minutos</strong>. Entorno supervisado Kiosk.
+            </p>
+            
+            <div class="space-y-3 mb-8 text-left text-xs text-slate-400 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-sky-400"></i>
+                    <span>Modo Pantalla Completa Obligatorio.</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-eye-slash text-sky-400"></i>
+                    <span>Monitoreo de cambio de pestaña (Máx. 3 advertencias).</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-lock text-sky-400"></i>
+                    <span>Bloqueo de menú contextual, atajos e inspección de código.</span>
+                </div>
+            </div>
+
+            <button onclick="startExam()" class="w-full py-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-lg rounded-xl shadow-lg shadow-sky-500/25 transition-all transform hover:-translate-y-0.5">
+                Iniciar Evaluación Ahora
+            </button>
+        </div>
+    </div>
+
+    <!-- Header Principal -->
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-sky-500/10 text-sky-400 rounded-xl flex items-center justify-center font-bold text-lg border border-sky-500/20">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-100">Evaluación de Física & Mate</h2>
+                    <p class="text-xs text-slate-400">Despeje y Métodos Algebraicos</p>
+                </div>
+            </div>
+
+            <!-- Timer / Status -->
+            <div class="flex items-center gap-4">
+                <div class="bg-slate-950/80 border border-slate-800 px-4 py-2 rounded-xl flex items-center gap-3">
+                    <i class="fa-regular fa-clock text-sky-400 text-lg"></i>
+                    <div>
+                        <span class="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Tiempo Restante</span>
+                        <span id="timer-display" class="font-mono text-lg font-bold text-slate-200">50:00</span>
+                    </div>
+                </div>
+
+                <button onclick="confirmSubmit()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-emerald-900/20 flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Finalizar Examen</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="exam-container" class="max-w-7xl mx-auto w-full p-4 lg:p-6 flex-grow grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Área de Pregunta Activa (3 Cols) -->
+        <section class="lg:col-span-3 flex flex-col justify-between bg-slate-900/60 border border-slate-800 rounded-3xl p-6 lg:p-8 relative shadow-xl">
+            
+            <div class="space-y-6">
+                <!-- Question Header -->
+                <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                    <span id="question-badge" class="px-3 py-1 bg-sky-500/10 text-sky-400 text-xs font-semibold rounded-full border border-sky-500/20">
+                        Pregunta 1 de 40
+                    </span>
+                    
+                    <button id="flag-btn" onclick="toggleFlagCurrentQuestion()" class="text-xs text-slate-400 hover:text-amber-400 flex items-center gap-1.5 transition-colors">
+                        <i class="fa-regular fa-bookmark"></i>
+                        <span>Marcar para revisión</span>
+                    </button>
+                </div>
+
+                <!-- Consigna Principal / Texto de Pregunta -->
+                <div class="space-y-4">
+                    <h3 class="text-xs uppercase font-bold tracking-wider text-slate-400">Consigna de Despeje</h3>
+                    <div id="question-text" class="text-lg lg:text-xl font-medium text-slate-100 leading-relaxed min-h-[3rem]">
+                        <!-- Renderizado fluido aquí -->
+                    </div>
+                </div>
+
+                <!-- Opciones de Respuesta -->
+                <div class="space-y-3 pt-2">
+                    <h4 class="text-xs uppercase font-bold tracking-wider text-slate-400 mb-2">Seleccione la opción correcta:</h4>
+                    <div id="options-container" class="grid grid-cols-1 gap-3">
+                        <!-- Las opciones A, B, C, D se insertan dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navegación de Preguntas (Anterior / Siguiente) -->
+            <div class="flex items-center justify-between pt-8 border-t border-slate-800 mt-8">
+                <button id="prev-btn" onclick="prevQuestion()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm rounded-xl transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> Anterior
+                </button>
+                <button id="next-btn" onclick="nextQuestion()" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-semibold text-sm rounded-xl transition-all flex items-center gap-2">
+                    Siguiente <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Sidebar / Visual Grid Navigator (1 Col) -->
+        <aside class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between shadow-xl">
+            <div>
+                <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center justify-between">
+                    <span>Navegador de Preguntas</span>
+                    <span id="answered-counter" class="text-xs font-normal text-slate-400">0/40</span>
+                </h3>
+
+                <!-- Grid Buttons -->
+                <div id="questions-grid" class="grid grid-cols-5 gap-2 max-h-[380px] overflow-y-auto pr-1">
+                    <!-- Botones 1 al 40 -->
+                </div>
+            </div>
+
+            <!-- Leyenda -->
+            <div class="mt-6 pt-4 border-t border-slate-800 text-xs space-y-2 text-slate-400">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-sky-500 inline-block"></span>
+                    <span>Actual</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-slate-700 border border-emerald-500/80 inline-block"></span>
+                    <span>Respondida</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500 inline-block"></span>
+                    <span>Para Revisar</span>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Modal Reporte Final -->
+    <div id="result-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 lg:p-8 shadow-2xl my-8">
+            <div id="pdf-content" class="bg-slate-900 p-4 text-slate-100">
+                <div class="text-center pb-6 border-b border-slate-800">
+                    <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl border border-emerald-500/20">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-white">Informe de Evaluación</h2>
+                    <p class="text-slate-400 text-xs mt-1">Plataforma de Despeje de Fórmulas de Física y Matemáticas</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 my-6">
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 block uppercase font-bold tracking-wider mb-1">Calificación</span>
+                        <span id="final-score" class="text-4xl font-extrabold text-emerald-400">0.00</span>
+                        <span class="text-xs text-slate-500 block">/ 10.00 puntos</span>
+                    </div>
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 block uppercase font-bold tracking-wider mb-1">Aciertos</span>
+                        <span id="correct-count" class="text-4xl font-extrabold text-sky-400">0</span>
+                        <span class="text-xs text-slate-500 block">de 40 preguntas</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-xs text-slate-400 bg-slate-950/40 p-4 rounded-xl border border-slate-800/80 mb-6">
+                    <div class="flex justify-between">
+                        <span>Tiempo Empleado:</span>
+                        <strong id="time-spent" class="text-slate-200">00:00</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Advertencias de Seguridad:</span>
+                        <strong id="final-warnings" class="text-slate-200">0 / 3</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Estado:</span>
+                        <strong id="final-status" class="text-emerald-400 font-bold">Aprobado</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <button onclick="downloadPDF()" class="flex-1 py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-pdf"></i> Descargar Reporte (PDF)
+                </button>
+                <button onclick="restartExam()" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all">
+                    Reintentar Examen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data de las 40 preguntas de despejes en Física y Matemática
+        const rawQuestions = [
+            { text: "En la ecuación de MRU $v = \\frac{d}{t}$, despeje el tiempo ($t$):", options: ["$t = v \\cdot d$", "$t = \\frac{d}{v}$", "$t = \\frac{v}{d}$", "$t = d - v$"], correct: 1 },
+            { text: "Dada la fórmula de la Fuerza $F = m \\cdot a$, despeje la masa ($m$):", options: ["$m = \\frac{F}{a}$", "$m = F \\cdot a$", "$m = \\frac{a}{F}$", "$m = F - a$"], correct: 0 },
+            { text: "En la ecuación de Energía Cinética $E_k = \\frac{1}{2}m v^2$, despeje la velocidad ($v$):", options: ["$v = \\sqrt{\\frac{2E_k}{m}}$", "$v = \\frac{2E_k}{m}$", "$v = \\sqrt{\\frac{E_k}{2m}}$", "$v = \\left(\\frac{E_k}{m}\\right)^2$"], correct: 0 },
+            { text: "En la fórmula de Densidad $\\rho = \\frac{m}{V}$, despeje el volumen ($V$):", options: ["$V = \\rho \\cdot m$", "$V = \\frac{m}{\\rho}$", "$V = \\frac{\\rho}{m}$", "$V = m + \\rho$"], correct: 1 },
+            { text: "En la Ley de Ohm $V = I \\cdot R$, despeje la corriente ($I$):", options: ["$I = V \\cdot R$", "$I = \\frac{R}{V}$", "$I = \\frac{V}{R}$", "$I = V - R$"], correct: 2 },
+            { text: "En la fórmula de la Presión $P = \\frac{F}{A}$, despeje el área ($A$):", options: ["$A = P \\cdot F$", "$A = \\frac{F}{P}$", "$A = \\frac{P}{F}$", "$A = F - P$"], correct: 1 },
+            { text: "En la MRUV $v_f = v_i + a \\cdot t$, despeje la aceleración ($a$):", options: ["$a = \\frac{v_f - v_i}{t}$", "$a = \\frac{v_f + v_i}{t}$", "$a = (v_f - v_i) \\cdot t$", "$a = \\frac{t}{v_f - v_i}$"], correct: 0 },
+            { text: "Dada la ecuación de Trabajo $W = F \\cdot d \\cdot \\cos(\\theta)$, despeje la distancia ($d$):", options: ["$d = \\frac{W}{F \\cdot \\cos(\\theta)}$", "$d = W \\cdot F \\cdot \\cos(\\theta)$", "$d = \\frac{F \\cdot \\cos(\\theta)}{W}$", "$d = \\frac{W \\cdot \\cos(\\theta)}{F}$"], correct: 0 },
+            { text: "En la Ley de Gravitación Universal $F = G \\frac{m_1 m_2}{r^2}$, despeje la distancia ($r$):", options: ["$r = \\sqrt{\\frac{G m_1 m_2}{F}}$", "$r = \\frac{G m_1 m_2}{F}$", "$r = \\sqrt{\\frac{F}{G m_1 m_2}}$", "$r = \\left(\\frac{G m_1 m_2}{F}\\right)^2$"], correct: 0 },
+            { text: "En la fórmula del Período de un Péndulo Simple $T = 2\\pi \\sqrt{\\frac{L}{g}}$, despeje la longitud ($L$):", options: ["$L = g \\left(\\frac{T}{2\\pi}\\right)^2$", "$L = \\frac{g \\cdot T}{2\\pi}$", "$L = \\sqrt{\\frac{T g}{2\\pi}}$", "$L = \\frac{T^2 \\cdot 2\\pi}{g}$"], correct: 0 },
+            
+            { text: "Dada la Ecuación Cuadrática estándar $a x^2 + b x + c = 0$, despeje $x$ mediante la fórmula general:", options: ["$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$", "$x = \\frac{b \\pm \\sqrt{b^2 - 4ac}}{2a}$", "$x = \\frac{-b \\pm \\sqrt{b^2 + 4ac}}{2a}$", "$x = \\frac{-b \\pm (b^2 - 4ac)}{2a}$"], correct: 0 },
+            { text: "En la fórmula de Potencia Eléctrica $P = \\frac{V^2}{R}$, despeje el voltaje ($V$):", options: ["$V = \\sqrt{P \\cdot R}$", "$V = P \\cdot R$", "$V = \\left(\\frac{P}{R}\\right)^2$", "$V = \\sqrt{\\frac{P}{R}}$"], correct: 0 },
+            { text: "En la ecuación del Círculo $A = \\pi r^2$, despeje el radio ($r$):", options: ["$r = \\sqrt{\\frac{A}{\\pi}}$", "$r = \\frac{A}{\\pi}$", "$r = \\sqrt{A \\cdot \\pi}$", "$r = \\left(\\frac{A}{\\pi}\\right)^2$"], correct: 0 },
+            { text: "En la fórmula de Frecuencia $f = \\frac{1}{T}$, despeje el período ($T$):", options: ["$T = \\frac{1}{f}$", "$T = f$", "$T = 1 - f$", "$T = f^2$"], correct: 0 },
+            { text: "En la fórmula del Torso/Momento de Fuerza $\\tau = F \\cdot r$, despeje la fuerza ($F$):", options: ["$F = \\frac{\\tau}{r}$", "$F = \\tau \\cdot r$", "$F = \\frac{r}{\\tau}$", "$F = \\tau - r$"], correct: 0 },
+            { text: "En la ecuación de Gas Ideal $P V = n R T$, despeje la temperatura ($T$):", options: ["$T = \\frac{P V}{n R}$", "$T = \\frac{n R}{P V}$", "$T = P V n R$", "$T = \\frac{P}{n R V}$"], correct: 0 },
+            { text: "En la Ecuación de la Recta $y = m x + b$, despeje la pendiente ($m$):", options: ["$m = \\frac{y - b}{x}$", "$m = \\frac{y + b}{x}$", "$m = \\frac{x}{y - b}$", "$m = y - b - x$"], correct: 0 },
+            { text: "En la fórmula del Volumen de una Esfera $V = \\frac{4}{3}\\pi r^3$, despeje el radio ($r$):", options: ["$r = \\sqrt[3]{\\frac{3V}{4\\pi}}$", "$r = \\frac{3V}{4\\pi}$", "$r = \\sqrt{\\frac{3V}{4\\pi}}$", "$r = \\sqrt[3]{\\frac{4V}{3\\pi}}$"], correct: 0 },
+            { text: "En la fórmula de la Cantidad de Movimiento $p = m \\cdot v$, despeje la masa ($m$):", options: ["$m = \\frac{p}{v}$", "$m = p \\cdot v$", "$m = \\frac{v}{p}$", "$m = p - v$"], correct: 0 },
+            { text: "En la Ley de Hooke $F = k \\cdot x$, despeje la constante elástica ($k$):", options: ["$k = \\frac{F}{x}$", "$k = F \\cdot x$", "$k = \\frac{x}{F}$", "$k = F - x$"], correct: 0 },
+
+            { text: "En la MRUV $v_f^2 = v_i^2 + 2 a d$, despeje la distancia ($d$):", options: ["$d = \\frac{v_f^2 - v_i^2}{2a}$", "$d = \\frac{v_f^2 + v_i^2}{2a}$", "$d = \\frac{2a}{v_f^2 - v_i^2}$", "$d = \\sqrt{\\frac{v_f - v_i}{2a}}$"], correct: 0 },
+            { text: "En la fórmula de Interés Simple $I = C \\cdot i \\cdot t$, despeje la tasa ($i$):", options: ["$i = \\frac{I}{C \\cdot t}$", "$i = \\frac{C \\cdot t}{I}$", "$i = I \\cdot C \\cdot t$", "$i = \\frac{I \\cdot t}{C}$"], correct: 0 },
+            { text: "En la Dilatación Lineal $\\Delta L = L_0 \\cdot \\alpha \\cdot \\Delta T$, despeje el coeficiente ($\\alpha$):", options: ["$\\alpha = \\frac{\\Delta L}{L_0 \\cdot \\Delta T}$", "$\\alpha = \\frac{L_0 \\cdot \\Delta T}{\\Delta L}$", "$\\alpha = \\Delta L \\cdot L_0 \\cdot \\Delta T$", "$\\alpha = \\frac{\\Delta L \\cdot L_0}{\\Delta T}$"], correct: 0 },
+            { text: "En la fórmula del Caudal $Q = \\frac{V}{t}$, despeje el tiempo ($t$):", options: ["$t = \\frac{V}{Q}$", "$t = Q \\cdot V$", "$t = \\frac{Q}{V}$", "$t = V - Q$"], correct: 0 },
+            { text: "En la Relación de Transformadores $\\frac{V_1}{V_2} = \\frac{N_1}{N_2}$, despeje $V_2$:", options: ["$V_2 = V_1 \\cdot \\frac{N_2}{N_1}$", "$V_2 = V_1 \\cdot \\frac{N_1}{N_2}$", "$V_2 = \\frac{N_1 N_2}{V_1}$", "$V_2 = V_1 + N_2 - N_1$"], correct: 0 },
+            { text: "Dada la fórmula del Trabajo Eléctrico $W = q \\cdot V$, despeje la carga ($q$):", options: ["$q = \\frac{W}{V}$", "$q = W \\cdot V$", "$q = \\frac{V}{W}$", "$q = W - V$"], correct: 0 },
+            { text: "En la fórmula de la Eficiencia $\\eta = \\frac{W_{útil}}{E_{entrada}}$, despeje $E_{entrada}$:", options: ["$E_{entrada} = \\frac{W_{útil}}{\\eta}$", "$E_{entrada} = W_{útil} \\cdot \\eta$", "$E_{entrada} = \\frac{\\eta}{W_{útil}}$", "$E_{entrada} = W_{útil} - \\eta$"], correct: 0 },
+            { text: "En la Ecuación del Calor Sensible $Q = m \\cdot c \\cdot \\Delta T$, despeje el calor específico ($c$):", options: ["$c = \\frac{Q}{m \\cdot \\Delta T}$", "$c = \\frac{m \\cdot \\Delta T}{Q}$", "$c = Q \\cdot m \\cdot \\Delta T$", "$c = \\frac{Q \\cdot m}{\\Delta T}$"], correct: 0 },
+            { text: "En la fórmula de la Capacitancia $C = \\frac{Q}{V}$, despeje el voltaje ($V$):", options: ["$V = \\frac{Q}{C}$", "$V = Q \\cdot C$", "$V = \\frac{C}{Q}$", "$V = Q - C$"], correct: 0 },
+            { text: "En la fórmula de la Velocidad Angular $\\omega = \\frac{2\\pi}{T}$, despeje el período ($T$):", options: ["$T = \\frac{2\\pi}{\\omega}$", "$T = 2\\pi \\cdot \\omega$", "$T = \\frac{\\omega}{2\\pi}$", "$T = \\omega - 2\\pi$"], correct: 0 },
+
+            { text: "Dada la Ley de Snell $n_1 \\sin(\\theta_1) = n_2 \\sin(\\theta_2)$, despeje $\\sin(\\theta_2)$:", options: ["$\\sin(\\theta_2) = \\frac{n_1 \\sin(\\theta_1)}{n_2}$", "$\\sin(\\theta_2) = \\frac{n_2 \\sin(\\theta_1)}{n_1}$", "$\\sin(\\theta_2) = n_1 n_2 \\sin(\\theta_1)$", "$\\sin(\\theta_2) = \\frac{n_1 n_2}{\\sin(\\theta_1)}$"], correct: 0 },
+            { text: "En la Ecuación de Bernouilli simplificada $P + \\frac{1}{2}\\rho v^2 = C$, despeje la velocidad ($v$):", options: ["$v = \\sqrt{\\frac{2(C - P)}{\\rho}}$", "$v = \\frac{2(C - P)}{\\rho}$", "$v = \\sqrt{\\frac{C - P}{2\\rho}}$", "$v = \\left(\\frac{C - P}{\\rho}\\right)^2$"], correct: 0 },
+            { text: "En la fórmula de la Energía Potencial Gravitatoria $E_p = m \\cdot g \\cdot h$, despeje la altura ($h$):", options: ["$h = \\frac{E_p}{m \\cdot g}$", "$h = \\frac{m \\cdot g}{E_p}$", "$h = E_p \\cdot m \\cdot g$", "$h = \\frac{E_p \\cdot m}{g}$"], correct: 0 },
+            { text: "En la fórmula de la Fuerza Centripeta $F_c = \\frac{m v^2}{r}$, despeje la velocidad ($v$):", options: ["$v = \\sqrt{\\frac{F_c \\cdot r}{m}}$", "$v = \\frac{F_c \\cdot r}{m}$", "$v = \\sqrt{\\frac{m}{F_c \\cdot r}}$", "$v = \\left(\\frac{F_c \\cdot r}{m}\\right)^2$"], correct: 0 },
+            { text: "En la fórmula de la Intensidad de Campo Eléctrico $E = \\frac{F}{q}$, despeje la fuerza ($F$):", options: ["$F = E \\cdot q$", "$F = \\frac{E}{q}$", "$F = \\frac{q}{E}$", "$F = E + q$"], correct: 0 },
+            { text: "Dada la Ley de De Broglie $\\lambda = \\frac{h}{p}$, despeje la cantidad de movimiento ($p$):", options: ["$p = \\frac{h}{\\lambda}$", "$p = h \\cdot \\lambda$", "$p = \\frac{\\lambda}{h}$", "$p = h - \\lambda$"], correct: 0 },
+            { text: "En la Ley de Stefan-Boltzmann $P = \\sigma A T^4$, despeje la temperatura ($T$):", options: ["$T = \\sqrt[4]{\\frac{P}{\\sigma A}}$", "$T = \\frac{P}{\\sigma A}$", "$T = \\left(\\frac{P}{\\sigma A}\\right)^4$", "$T = \\sqrt{\\frac{P}{\\sigma A}}$"], correct: 0 },
+            { text: "En el Modelo de Decaimiento Radiactivo $N = N_0 e^{-\\lambda t}$, despeje la cantidad inicial ($N_0$):", options: ["$N_0 = N e^{\\lambda t}$", "$N_0 = N e^{-\\lambda t}$", "$N_0 = \\frac{e^{\\lambda t}}{N}$", "$N_0 = N + \\lambda t$"], correct: 0 },
+            { text: "En la Ecuación de Lentes Delgadas $\\frac{1}{f} = \\frac{1}{d_o} + \\frac{1}{d_i}$, despeje la distancia focal ($f$):", options: ["$f = \\frac{d_o \\cdot d_i}{d_o + d_i}$", "$f = \\frac{d_o + d_i}{d_o \\cdot d_i}$", "$f = d_o + d_i$", "$f = d_o \\cdot d_i$"], correct: 0 },
+            { text: "En la Ecuación de Eficiencia de Carnot $\\eta = 1 - \\frac{T_C}{T_H}$, despeje la temperatura fría ($T_C$):", options: ["$T_C = T_H (1 - \\eta)$", "$T_C = T_H (1 + \\eta)$", "$T_C = \\frac{T_H}{1 - \\eta}$", "$T_C = \\eta \\cdot T_H$"], correct: 0 }
+        ];
+
+        // Estado Global del Examen
+        let state = {
+            currentIndex: 0,
+            answers: new Array(40).fill(null),
+            flagged: new Array(40).fill(false),
+            timeRemaining: 3000, // 50 minutos en segundos
+            warnings: 0,
+            timerInterval: null,
+            examActive: false
+        };
+
+        // Cargar avance desde localStorage
+        function loadSavedState() {
+            const saved = localStorage.getItem('eval_despeje_state');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state.answers = parsed.answers || state.answers;
+                    state.flagged = parsed.flagged || state.flagged;
+                    state.timeRemaining = parsed.timeRemaining ?? state.timeRemaining;
+                    state.warnings = parsed.warnings || 0;
+                } catch(e) {
+                    console.error("Error al cargar localStorage", e);
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('eval_despeje_state', JSON.stringify({
+                answers: state.answers,
+                flagged: state.flagged,
+                timeRemaining: state.timeRemaining,
+                warnings: state.warnings
+            }));
+        }
+
+        // Iniciar el Examen y activar Fullscreen
+        function startExam() {
+            document.getElementById('start-overlay').classList.add('hidden');
+            
+            // Solicitar Pantalla Completa
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(() => {});
+            }
+
+            loadSavedState();
+            state.examActive = true;
+
+            startTimer();
+            buildNavigatorGrid();
+            renderQuestion(state.currentIndex);
+            setupSecurityListeners();
+        }
+
+        // Timer de 50 Minutos
+        function startTimer() {
+            updateTimerDisplay();
+            state.timerInterval = setInterval(() => {
+                if (state.timeRemaining > 0) {
+                    state.timeRemaining--;
+                    updateTimerDisplay();
+                    if (state.timeRemaining % 5 === 0) saveState();
+                } else {
+                    clearInterval(state.timerInterval);
+                    submitExam(true);
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(state.timeRemaining / 60).toString().padStart(2, '0');
+            const s = (state.timeRemaining % 60).toString().padStart(2, '0');
+            const el = document.getElementById('timer-display');
+            if (el) el.textContent = `${m}:${s}`;
+        }
+
+        // Renderizado Fluido de la Pregunta y Opciones con KaTeX
+        function renderQuestion(index) {
+            state.currentIndex = index;
+            const q = rawQuestions[index];
+
+            // Badge
+            document.getElementById('question-badge').textContent = `Pregunta ${index + 1} de 40`;
+
+            // Botón Marca para revisión
+            const flagBtn = document.getElementById('flag-btn');
+            if (state.flagged[index]) {
+                flagBtn.classList.add('text-amber-400');
+                flagBtn.innerHTML = `<i class="fa-solid fa-bookmark"></i> <span>Marcada para revisión</span>`;
+            } else {
+                flagBtn.classList.remove('text-amber-400');
+                flagBtn.innerHTML = `<i class="fa-regular fa-bookmark"></i> <span>Marcar para revisión</span>`;
+            }
+
+            // Consigna principal (Fórmula integrada de manera fluida)
+            const textEl = document.getElementById('question-text');
+            textEl.innerHTML = q.text;
+
+            // Opciones A, B, C, D
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            const letters = ['A', 'B', 'C', 'D'];
+            q.options.forEach((optText, optIdx) => {
+                const isSelected = state.answers[index] === optIdx;
+                const btn = document.createElement('button');
+                btn.className = `w-full p-4 rounded-2xl border text-left flex items-center gap-4 transition-all ${
+                    isSelected 
+                        ? 'bg-sky-500/15 border-sky-500 text-white shadow-lg shadow-sky-500/10' 
+                        : 'bg-slate-950/40 border-slate-800 hover:border-slate-700 text-slate-200'
+                }`;
+                btn.onclick = () => selectOption(optIdx);
+
+                btn.innerHTML = `
+                    <div class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                        isSelected ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-400'
+                    }">
+                        ${letters[optIdx]}
+                    </div>
+                    <div class="text-base font-medium flex-grow">
+                        ${optText}
+                    </div>
+                    <div class="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center shrink-0 ${
+                        isSelected ? 'border-sky-500 bg-sky-500' : ''
+                    }">
+                        ${isSelected ? '<i class="fa-solid fa-check text-xs text-white"></i>' : ''}
+                    </div>
+                `;
+                container.appendChild(btn);
+            });
+
+            // Renderizado explícito KaTeX en el elemento
+            if (window.renderMathInElement) {
+                renderMathInElement(textEl, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+
+                renderMathInElement(container, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+
+            // Actualizar botones prev/next
+            document.getElementById('prev-btn').disabled = index === 0;
+            document.getElementById('prev-btn').style.opacity = index === 0 ? '0.5' : '1';
+            
+            if (index === 39) {
+                document.getElementById('next-btn').innerHTML = `Finalizar <i class="fa-solid fa-check-double"></i>`;
+            } else {
+                document.getElementById('next-btn').innerHTML = `Siguiente <i class="fa-solid fa-arrow-right"></i>`;
+            }
+
+            updateNavigatorGrid();
+        }
+
+        // Selección de Opción
+        function selectOption(optIndex) {
+            state.answers[state.currentIndex] = optIndex;
+            saveState();
+            renderQuestion(state.currentIndex);
+        }
+
+        function prevQuestion() {
+            if (state.currentIndex > 0) renderQuestion(state.currentIndex - 1);
+        }
+
+        function nextQuestion() {
+            if (state.currentIndex < 39) {
+                renderQuestion(state.currentIndex + 1);
+            } else {
+                confirmSubmit();
+            }
+        }
+
+        function toggleFlagCurrentQuestion() {
+            state.flagged[state.currentIndex] = !state.flagged[state.currentIndex];
+            saveState();
+            renderQuestion(state.currentIndex);
+        }
+
+        // Construir Navegador de Preguntas (Cuadrícula)
+        function buildNavigatorGrid() {
+            const grid = document.getElementById('questions-grid');
+            grid.innerHTML = '';
+
+            for (let i = 0; i < 40; i++) {
+                const btn = document.createElement('button');
+                btn.id = `nav-btn-${i}`;
+                btn.className = `h-10 rounded-xl font-bold text-xs transition-all border flex items-center justify-center relative`;
+                btn.onclick = () => renderQuestion(i);
+                btn.innerText = i + 1;
+                grid.appendChild(btn);
+            }
+            updateNavigatorGrid();
+        }
+
+        function updateNavigatorGrid() {
+            let answeredCount = 0;
+            for (let i = 0; i < 40; i++) {
+                const btn = document.getElementById(`nav-btn-${i}`);
+                if (!btn) continue;
+
+                const isCurrent = state.currentIndex === i;
+                const isAnswered = state.answers[i] !== null;
+                const isFlagged = state.flagged[i];
+
+                if (isAnswered) answeredCount++;
+
+                btn.className = `h-10 rounded-xl font-bold text-xs transition-all border flex items-center justify-center relative `;
+
+                if (isCurrent) {
+                    btn.classList.add('bg-sky-500', 'text-white', 'border-sky-400', 'shadow-md', 'shadow-sky-500/30');
+                } else if (isFlagged) {
+                    btn.classList.add('bg-amber-500/20', 'text-amber-300', 'border-amber-500');
+                } else if (isAnswered) {
+                    btn.classList.add('bg-slate-800', 'text-emerald-400', 'border-emerald-500/50');
+                } else {
+                    btn.classList.add('bg-slate-950/50', 'text-slate-400', 'border-slate-800', 'hover:border-slate-700');
+                }
+            }
+            document.getElementById('answered-counter').textContent = `${answeredCount}/40`;
+        }
+
+        // Medidas de Seguridad Kiosk Anti-Fraude
+        function setupSecurityListeners() {
+            // Bloqueo de Clic Derecho
+            document.addEventListener('contextmenu', e => e.preventDefault());
+
+            // Bloqueo de Atajos Teclado (F12, Ctrl+Shift+I, Ctrl+C, Ctrl+V, etc.)
+            document.addEventListener('keydown', e => {
+                if (
+                    e.key === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+                    (e.ctrlKey && (e.key === 'u' || e.key === 'c' || e.key === 'v' || e.key === 'a' || e.key === 'p'))
+                ) {
+                    e.preventDefault();
+                }
+            });
+
+            // Monitoreo de Visibilidad y Pérdida de Foco
+            window.addEventListener('blur', triggerWarning);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) triggerWarning();
+            });
+        }
+
+        function triggerWarning() {
+            if (!state.examActive) return;
+
+            state.warnings++;
+            saveState();
+
+            document.getElementById('warning-count-text').textContent = `${state.warnings} / 3`;
+            document.getElementById('warning-modal').classList.remove('hidden');
+
+            if (state.warnings >= 3) {
+                closeWarningModal();
+                submitExam(true);
+            }
+        }
+
+        function closeWarningModal() {
+            document.getElementById('warning-modal').classList.add('hidden');
+        }
+
+        function confirmSubmit() {
+            const unanswered = state.answers.filter(a => a === null).length;
+            let msg = '¿Deseas finalizar la evaluación de despeje de fórmulas?';
+            if (unanswered > 0) {
+                msg = `Tienes ${unanswered} preguntas sin responder. ¿Aún así deseas finalizar?`;
+            }
+            if (confirm(msg)) {
+                submitExam(false);
+            }
+        }
+
+        // Finalizar y Calcular Resultados
+        function submitExam(autoSubmitted = false) {
+            state.examActive = false;
+            clearInterval(state.timerInterval);
+
+            // Calificación
+            let correct = 0;
+            for (let i = 0; i < 40; i++) {
+                if (state.answers[i] === rawQuestions[i].correct) {
+                    correct++;
+                }
+            }
+
+            const score = ((correct / 40) * 10).toFixed(2);
+            const timeSpentSeconds = 3000 - state.timeRemaining;
+            const spentM = Math.floor(timeSpentSeconds / 60).toString().padStart(2, '0');
+            const spentS = (timeSpentSeconds % 60).toString().padStart(2, '0');
+
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('correct-count').textContent = correct;
+            document.getElementById('time-spent').textContent = `${spentM}:${spentS} min`;
+            document.getElementById('final-warnings').textContent = `${state.warnings} / 3`;
+
+            const statusEl = document.getElementById('final-status');
+            if (parseFloat(score) >= 7.0) {
+                statusEl.textContent = 'Aprobado';
+                statusEl.className = 'text-emerald-400 font-bold';
+            } else {
+                statusEl.textContent = 'Reprobado';
+                statusEl.className = 'text-rose-400 font-bold';
+            }
+
+            document.getElementById('result-modal').classList.remove('hidden');
+            localStorage.removeItem('eval_despeje_state');
+        }
+
+        // Descargar Reporte en PDF
+        function downloadPDF() {
+            const element = document.getElementById('pdf-content');
+            const opt = {
+                margin:       0.5,
+                filename:     'Reporte_Evaluacion_Despeje_Formulas.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function restartExam() {
+            localStorage.removeItem('eval_despeje_state');
+            location.reload();
+        }
+
+        // Inicialización al cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            // Carga diferida o verificación de KaTeX
+            setTimeout(() => {
+                if (window.renderMathInElement) {
+                    renderMathInElement(document.body);
+                }
+            }, 300);
+        });
+    </script>
+</body>
+</html>
