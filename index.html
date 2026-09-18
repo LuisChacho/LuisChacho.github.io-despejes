@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Evaluación de Despeje de Fórmulas - Física & Matemáticas</title>
+  <title>Evaluación Diagnóstica de Despeje de Fórmulas</title>
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -36,39 +36,41 @@
     }
   </script>
 
-  <!-- KaTeX CSS & JS -->
+  <!-- KaTeX CSS & JS (Renderizado Matemático Profesional) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
 
-  <!-- Lucide Icons & html2pdf -->
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- html2pdf.js (Generación de Reporte PDF) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-  <!-- Custom CSS -->
+  <!-- Estilos Personalizados -->
   <link rel="stylesheet" href="index.css">
 </head>
 <body class="h-full flex flex-col justify-between select-none bg-slate-950 text-slate-100 overflow-x-hidden">
 
-  <!-- Modal de Infracción Kiosk Anti-Fraude -->
+  <!-- OVERLAY DE SEGURIDAD KIOSK -->
   <div id="securityModal" class="hidden fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-red-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center">
       <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/20">
         <i data-lucide="shield-alert" class="w-8 h-8"></i>
       </div>
-      <h3 class="text-xl font-bold text-white mb-2">¡Infracción de Seguridad Detectada!</h3>
-      <p id="securityMessage" class="text-slate-300 text-sm mb-6">Se ha detectado una salida de pantalla completa o cambio de pestaña activa.</p>
+      <h3 class="text-xl font-bold text-white mb-2">¡Infracción de Seguridad!</h3>
+      <p id="securityMessage" class="text-slate-300 text-sm mb-6">Se ha detectado cambio de pestaña o salida de la pantalla completa.</p>
       <div class="bg-red-950/40 border border-red-500/30 rounded-xl p-3 mb-6">
         <span class="text-xs uppercase tracking-wider text-red-400 font-bold block mb-1">Advertencias Registradas</span>
         <span id="strikeCounter" class="text-2xl font-black text-red-500">1 / 3</span>
       </div>
       <button onclick="resumeExam()" class="w-full bg-red-600 hover:bg-red-500 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-red-600/30 flex items-center justify-center space-x-2">
         <i data-lucide="maximize" class="w-4 h-4"></i>
-        <span>Regresar a Pantalla Completa</span>
+        <span>Volver a Pantalla Completa</span>
       </button>
     </div>
   </div>
 
-  <!-- Pantalla 1: Registro e Inicio -->
+  <!-- PANTALLA 1: REGISTRO E INSTRUCCIONES -->
   <section id="loginScreen" class="min-h-screen flex items-center justify-center p-4 py-12">
     <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-8 max-w-xl w-full shadow-2xl backdrop-blur-md relative overflow-hidden">
       <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl"></div>
@@ -78,16 +80,16 @@
           <i data-lucide="calculator" class="w-10 h-10"></i>
         </div>
         <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Evaluación de Despeje de Fórmulas</h1>
-        <p class="text-slate-400 text-sm mt-1">Física & Matemáticas — <strong>40 Ejercicios</strong></p>
+        <p class="text-slate-400 text-sm mt-1">Física & Matemáticas — <strong>40 Preguntas</strong></p>
       </div>
 
       <div class="bg-slate-950/60 rounded-xl p-4 mb-6 border border-slate-800 text-xs text-slate-300 space-y-2">
         <div class="flex items-center text-amber-400 font-semibold mb-2 text-sm">
-          <i data-lucide="shield-check" class="w-4 h-4 mr-2"></i> Capas de Seguridad Anti-Fraude Activas:
+          <i data-lucide="shield-check" class="w-4 h-4 mr-2"></i> Capas de Seguridad Kiosk Anti-Fraude:
         </div>
-        <p class="flex items-start"><span class="text-amber-400 mr-2">•</span> Modo <strong>Pantalla Completa</strong> obligatorio durante la evaluación.</p>
-        <p class="flex items-start"><span class="text-amber-400 mr-2">•</span> Monitoreo de foco de pestaña (máximo <strong>3 advertencias</strong>).</p>
-        <p class="flex items-start"><span class="text-amber-400 mr-2">•</span> Bloqueo de menú contextual, copiar/pegar y teclas F12 / DevTools.</p>
+        <p class="flex items-start"><span class="text-amber-400 mr-2">•</span> Modo <strong>Pantalla Completa</strong> obligatorio durante toda la prueba.</p>
+        <p class="flex items-start"><span class="text-amber-400 mr-2">•</span> Monitoreo de cambio de foco y pestañas. Máximo <strong>3 advertencias</strong>.</p>
+        <p class="flex items-start"><span class="text-amber-400 mr-2">•</span> Deshabilitados menú contextual, copiar/pegar e inspeccionar código (F12).</p>
       </div>
 
       <form id="startForm" onsubmit="initExam(event)" class="space-y-4 relative z-10">
@@ -100,16 +102,15 @@
           <input type="text" id="studentClass" required placeholder="Ej. 1.º BGU 'A'" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
         </div>
         <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-brand-600/30 flex items-center justify-center space-x-2 mt-6">
-          <span>Comenzar Evaluación</span>
+          <span>Iniciar Evaluación</span>
           <i data-lucide="arrow-right" class="w-5 h-5"></i>
         </button>
       </form>
     </div>
   </section>
 
-  <!-- Pantalla 2: Interfaz del Examen -->
+  <!-- PANTALLA 2: ENTORNO DEL EXAMEN -->
   <section id="examScreen" class="hidden flex-1 flex flex-col h-screen overflow-hidden">
-    <!-- Header Fijo -->
     <header class="bg-slate-900/90 border-b border-slate-800 px-6 py-3.5 flex items-center justify-between backdrop-blur-md z-20">
       <div class="flex items-center space-x-3">
         <div class="p-2 bg-brand-500/10 border border-brand-500/20 rounded-lg text-brand-500 hidden sm:block">
@@ -121,7 +122,6 @@
         </div>
       </div>
 
-      <!-- Temporizador -->
       <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl">
         <i data-lucide="clock" class="w-4 h-4 text-brand-500 animate-pulse"></i>
         <span id="timer" class="font-mono text-base font-bold text-white">50:00</span>
@@ -133,13 +133,12 @@
       </button>
     </header>
 
-    <!-- Layout del Examen -->
     <div class="flex-1 flex overflow-hidden">
-      <!-- Navegador Lateral de Preguntas -->
+      <!-- Navegador Lateral -->
       <aside class="w-72 bg-slate-900/50 border-r border-slate-800/80 p-4 flex flex-col justify-between hidden lg:flex">
         <div class="overflow-y-auto pr-1">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mapa de Preguntas</h3>
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Preguntas</h3>
             <span class="text-xs text-brand-500 font-mono font-semibold" id="sidebarCount">0/40</span>
           </div>
           <div id="questionGrid" class="grid grid-cols-5 gap-2"></div>
@@ -156,7 +155,7 @@
         </div>
       </aside>
 
-      <!-- Panel de la Pregunta -->
+      <!-- Área Principal -->
       <main class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col justify-between bg-slate-950">
         <div class="max-w-3xl mx-auto w-full">
           <div class="flex items-center justify-between mb-4">
@@ -178,7 +177,7 @@
           <div id="optionsContainer" class="space-y-3"></div>
         </div>
 
-        <!-- Botones Nivel Inferior -->
+        <!-- Botones de Navegación -->
         <div class="max-w-3xl mx-auto w-full flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
           <button id="prevBtn" onclick="navigateQuestion(-1)" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2 disabled:opacity-40">
             <i data-lucide="chevron-left" class="w-4 h-4"></i>
@@ -193,7 +192,7 @@
     </div>
   </section>
 
-  <!-- Pantalla 3: Resultados Finales -->
+  <!-- PANTALLA 3: REPORTE FINAL -->
   <section id="resultScreen" class="hidden flex-1 flex items-center justify-center p-4 my-8">
     <div id="pdfContent" class="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-2xl w-full shadow-2xl relative overflow-hidden">
       <div class="text-center border-b border-slate-800 pb-6 mb-6">
@@ -201,7 +200,7 @@
           <i data-lucide="check-circle-2" class="w-10 h-10"></i>
         </div>
         <h2 class="text-2xl font-bold text-white">Evaluación Finalizada</h2>
-        <p class="text-slate-400 text-sm mt-1">Informe Oficial de Desempeño</p>
+        <p class="text-slate-400 text-sm mt-1">Reporte de Desempeño Individual</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800 mb-6 text-sm">
@@ -233,7 +232,7 @@
       <div class="flex flex-col sm:flex-row gap-3">
         <button onclick="downloadPDF()" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center space-x-2 shadow-lg shadow-brand-600/20">
           <i data-lucide="download" class="w-4 h-4"></i>
-          <span>Descargar Reporte PDF</span>
+          <span>Descargar Reporte en PDF</span>
         </button>
         <button onclick="resetApp()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 px-4 rounded-xl transition-all">
           Cerrar Sesión
@@ -242,6 +241,7 @@
     </div>
   </section>
 
+  <!-- Script Principal -->
   <script src="index.js"></script>
 </body>
 </html>
